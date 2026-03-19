@@ -147,7 +147,7 @@ vercel
 
 ## 📱 Live Demo
 
-**🌐 Access the dashboard**: https://dhruv1955.github.io/smart-meter-dashboard/
+**🌐 Access the dashboard**: 
 
 ---
 
