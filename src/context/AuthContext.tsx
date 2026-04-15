@@ -20,7 +20,7 @@ export interface SessionUser {
 
 interface RegisterPayload {
   name: string
-  email: string
+  email?: string
   employeeId: string
   department?: string
   password: string
@@ -111,16 +111,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp: AuthContextType['signUp'] = async (payload) => {
     const normalizedName = payload.name.trim()
-    const normalizedEmail = payload.email.trim().toLowerCase()
     const normalizedEmployeeId = payload.employeeId.trim().toUpperCase()
     const normalizedDepartment = payload.department?.trim() || 'General'
-    const normalizedPassword = payload.password
+    const normalizedPassword = payload.password.trim()
+    const normalizedEmailInput = payload.email?.trim().toLowerCase() || ''
+    const normalizedEmail = normalizedEmailInput || `${normalizedEmployeeId.toLowerCase()}@local.tatapower`
 
-    if (!normalizedName || !normalizedEmail || !normalizedEmployeeId || !normalizedDepartment || !normalizedPassword) {
+    if (!normalizedName || !normalizedEmployeeId || !normalizedPassword) {
       return { ok: false, error: 'Please fill all required fields' }
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    if (normalizedEmailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmailInput)) {
       return { ok: false, error: 'Please enter a valid email address' }
     }
 
@@ -143,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setUsers(prev => [...prev, newUser])
+    setUser(toSessionUser(newUser))
     return { ok: true }
   }
 

@@ -36,27 +36,21 @@ export default function SignUp() {
       newErrors.name = 'Full name is required'
     }
     
-    if (!formData.email) {
-      newErrors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email'
     }
     
     const employeeIdValue = formData.employeeId.trim()
     if (!employeeIdValue) {
       newErrors.employeeId = 'Employee ID is required'
-    } else if (employeeIdValue.length < 3) {
-      newErrors.employeeId = 'Employee ID must be at least 3 characters'
-    } else if (!/^[a-zA-Z0-9\-_/]+$/.test(employeeIdValue)) {
-      newErrors.employeeId = 'Use only letters, numbers, -, _, or /'
+    } else if (employeeIdValue.length < 2) {
+      newErrors.employeeId = 'Employee ID must be at least 2 characters'
     }
     
     if (!formData.password) {
       newErrors.password = 'Password is required'
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters'
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and number'
+    } else if (formData.password.length < 4) {
+      newErrors.password = 'Password must be at least 4 characters'
     }
     
     if (!formData.confirmPassword) {
@@ -101,7 +95,7 @@ export default function SignUp() {
       return
     }
 
-    navigate('/signin', { replace: true })
+    navigate('/dashboard', { replace: true })
   }
 
   return (
@@ -162,7 +156,7 @@ export default function SignUp() {
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-purple-200 mb-2">
-                Email Address
+                Email Address (optional)
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-400" />
@@ -172,7 +166,7 @@ export default function SignUp() {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.email ? 'border-red-400' : 'border-white/20'} rounded-xl text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200`}
-                  placeholder="employee@tatamotors.com"
+                  placeholder="employee@tatapower.com"
                 />
               </div>
               {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
