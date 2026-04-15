@@ -1,25 +1,23 @@
 import { useState, FormEvent } from 'react'
-import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react'
+import { Eye, EyeOff, User, Lock, Zap } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 export default function SignIn() {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [authError, setAuthError] = useState('')
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
+  const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({})
   const navigate = useNavigate()
   const { signIn } = useAuth()
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {}
+    const newErrors: { identifier?: string; password?: string } = {}
     
-    if (!email) {
-      newErrors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email'
+    if (!identifier.trim()) {
+      newErrors.identifier = 'Email or employee ID is required'
     }
     
     if (!password) {
@@ -40,7 +38,7 @@ export default function SignIn() {
     setIsLoading(true)
     setAuthError('')
 
-    const result = await signIn(email, password)
+    const result = await signIn(identifier, password)
 
     setIsLoading(false)
 
@@ -67,22 +65,22 @@ export default function SignIn() {
         {/* Sign In Form */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8 backdrop-blur-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
+            {/* Email / Employee ID Field */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Email Address
+                Email Address or Employee ID
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 bg-slate-800/50 border ${errors.email ? 'border-red-400' : 'border-slate-600'} rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
-                  placeholder="employee@tatapower.com"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-3 bg-slate-800/50 border ${errors.identifier ? 'border-red-400' : 'border-slate-600'} rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                  placeholder="employee@tatapower.com or TM123456"
                 />
               </div>
-              {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
+              {errors.identifier && <p className="mt-1 text-sm text-red-400">{errors.identifier}</p>}
             </div>
 
             {/* Password Field */}

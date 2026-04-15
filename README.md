@@ -1,154 +1,104 @@
 # Smart Meter Communication Dashboard
-### Tata Power DDL — Data & Frontend Internship Project
+### Tata Power DDL - Data & Frontend Internship Project
 
----
+A React + TypeScript dashboard for monitoring smart meter communication, ageing buckets, meter-type performance, and daily operational updates. The app includes a working authentication flow, CSV upload support, light/dark mode, and an admin panel for managing dashboard data.
 
-## 🚀 Setup in VS Code (3 steps)
+## Features
 
-### Step 1 — Install Node.js (if not already)
-Download from: https://nodejs.org  
-Choose **LTS version** → install → restart VS Code
+- Dashboard overview with KPI cards and charts
+- District-wise communication ageing view
+- Meter type breakdown and performance charts
+- Daily updates timeline
+- Light and dark theme support
+- Authentication with signup and sign-in
+- Sign in using either email or employee ID
+- CSV upload for district data in the admin panel
+- Persistent data using `localStorage`
+- Responsive layout for desktop and mobile
 
-### Step 2 — Open project in VS Code
-1. Unzip the folder
-2. Open VS Code
-3. File → Open Folder → select `smart-meter-dashboard` 
-4. Open Terminal: View → Terminal (or Ctrl+`)
+## Authentication
 
-### Step 3 — Install & Run
+The app uses a local demo authentication system.
+
+### Sign up
+- Full name
+- Email address
+- Employee ID
+- Password
+- Confirm password
+
+Department is not required.
+
+### Sign in
+You can sign in using either:
+- the email address used at signup, or
+- the employee ID used at signup
+
+### Demo account
+If you want to test immediately, use:
+- Email: `aman.yadav@tatapower.com`
+- Employee ID: `TM123456`
+- Password: `TataPower1`
+
+## Admin Panel
+
+Open the admin panel from the dashboard header and enter:
+- Password: `tpddl2025`
+
+Admin actions:
+- Add, edit, and delete districts
+- Edit meter type data
+- Add daily updates
+- Upload CSV files to update district data
+
+## Local Setup
+
+### 1. Install dependencies
 ```bash
 npm install
+```
+
+### 2. Start the development server
+```bash
 npm run dev
 ```
 
-Open browser: **http://localhost:5173**
+Open the app in your browser at the local Vite URL shown in the terminal.
 
----
-
-## 📁 File Structure
-
-```
-smart-meter-dashboard/
-├── src/
-│   ├── App.tsx          ← MAIN DASHBOARD (all code here)
-│   ├── main.tsx         ← React entry point
-│   └── index.css        ← Tailwind + global styles
-├── public/
-│   └── favicon.svg
-├── index.html
-├── package.json         ← dependencies
-├── vite.config.ts       ← Vite config
-├── tsconfig.json        ← TypeScript config
-├── tailwind.config.js   ← Tailwind config
-└── postcss.config.js
-```
-
----
-
-## 🔐 Admin Panel
-
-Click **⚙️ Admin** button (top right)  
-Password: **tpddl2025**
-
-Features:
-- Add / Edit / Delete districts
-- Edit meter type data
-- Log daily updates
-- All data saved in localStorage (persists on refresh)
-
----
-
-## 📦 Tech Stack (Resume-ready)
-
-| Tech | Version | Purpose |
-|------|---------|---------|
-| React | 18 | UI framework |
-| TypeScript | 5 | Type safety |
-| Recharts | 2 | Charts (Bar, Pie, Radar) |
-| Tailwind CSS | 3 | Styling |
-| Vite | 5 | Dev server + build |
-| localStorage | — | Data persistence |
-
----
-
-## 🏗️ Build for Production
+## Production Build
 
 ```bash
 npm run build
 ```
 
-Output goes to `/dist` folder — deploy to Vercel, Netlify, or GitHub Pages.
+This creates the production output in the `dist` folder.
 
-### Deploy to Vercel (free)
-```bash
-npm install -g vercel
-vercel
+## Tech Stack
+
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- Recharts
+- localStorage for persistence
+
+## Project Structure
+
+```text
+src/
+├── App.tsx
+├── main.tsx
+├── index.css
+├── assets/
+├── components/
+│   └── auth/
+└── context/
 ```
 
----
+## Notes
 
-## 📊 Data Source
+- The dashboard data is stored in the browser, so refresh keeps your changes.
+- CSV imports update the main dashboard immediately after upload.
+- Routes such as `/signin`, `/signup`, and `/dashboard` are handled client-side.
 
-- **File:** `Meters_Communication_Last_Status_Detail_Report_2025-12-26.zip` 
-- **Records:** 6,46,302 smart meters
-- **Districts:** 12 (BADLI, BAWANA, CIVIL LINES, KESHAVPURAM, KIRARI, MANGOL PURI, MODEL TOWN, MOTI NAGAR, NARELA, PITAMPURA, ROHINI, SHALIMAR BAGH)
-- **Meter Types:** SP, PPWC, LTCT, HT, DT
-- **Sources:** L+G (Landis+Gyr), FG (Genus)
-
----
-
-## 🎓 Interview Points
-
-1. **TypeScript** — 12 interfaces, typed props, `keyof DistrictRow` for sort keys
-2. **Recharts** — BarChart, PieChart, RadarChart, stacked bars, custom tooltips
-3. **useMemo** — filtered + sorted table data optimization
-4. **useCallback** — stable handler references for localStorage writes
-5. **Admin CRUD** — full add/edit/delete on districts, meter types, updates
-6. **Responsive** — Tailwind grid, mobile-first, sticky header + tabs
-
----
-
-## 🌟 Features
-
-- **Real-time Dashboard** - Live data visualization with instant updates
-- **Light/Dark Theme** - Professional theme toggle with persistence
-- **CSV Upload** - Import district data with validation
-- **Authentication** - Employee login/registration system
-- **Responsive Design** - Works seamlessly on all devices
-- **Data Persistence** - LocalStorage integration
-- **Interactive Charts** - Bar, Pie, and Radar charts
-- **Admin Panel** - Complete CRUD operations
-- **Professional UI** - Modern, clean interface
-
----
-
-## 🚀 Getting Started
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Amanyadav0315/smart_meter_dashboard.git
-   cd smart-meter-dashboard
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-4. **Open browser**
-   Navigate to `http://localhost:5173` 
-
----
-
-## 📱 Live Demo
-
-**🌐 Access the dashboard**: 
-
----
-
-Built by **Aman Yadav** · IIIT Agartala · Tata Power DDL Internship Dec 2025–Jan 2026
+Built by Aman Yadav for Tata Power DDL internship work.

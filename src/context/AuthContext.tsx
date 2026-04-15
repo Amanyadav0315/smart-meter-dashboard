@@ -22,14 +22,14 @@ interface RegisterPayload {
   name: string
   email: string
   employeeId: string
-  department: string
+  department?: string
   password: string
 }
 
 interface AuthContextType {
   user: SessionUser | null
   isAuthenticated: boolean
-  signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  signIn: (identifier: string, password: string) => Promise<{ ok: boolean; error?: string }>
   signUp: (payload: RegisterPayload) => Promise<{ ok: boolean; error?: string }>
   signOut: () => void
 }
@@ -94,12 +94,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(SESSION_KEY)
   }, [user])
 
-  const signIn: AuthContextType['signIn'] = async (email, password) => {
-    const normalizedEmail = email.trim().toLowerCase()
-    const match = users.find(u => u.email.toLowerCase() === normalizedEmail)
+  const signIn: AuthContextType['signIn'] = async (identifier, password) => {
+    const normalizedIdentifier = identifier.trim().toLowerCase()
+    const normalizedEmployeeId = identifier.trim().toUpperCase()
+    const match = users.find(
+      u => u.email.toLowerCase() === normalizedIdentifier || u.employeeId.toUpperCase() === normalizedEmployeeId,
+    )
 
     if (!match || match.password !== password) {
-      return { ok: false, error: 'Invalid email or password' }
+      return { ok: false, error: 'Invalid email/employee ID or password' }
     }
 
     setUser(toSessionUser(match))
@@ -107,8 +110,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signUp: AuthContextType['signUp'] = async (payload) => {
+    const normalizedName = payload.name.trim()
     const normalizedEmail = payload.email.trim().toLowerCase()
     const normalizedEmployeeId = payload.employeeId.trim().toUpperCase()
+    const normalizedDepartment = payload.department?.trim() || 'General'
+    const normalizedPassword = payload.password
+
+    if (!normalizedName || !normalizedEmail || !normalizedEmployeeId || !normalizedDepartment || !normalizedPassword) {
+      return { ok: false, error: 'Please fill all required fields' }
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return { ok: false, error: 'Please enter a valid email address' }
+    }
 
     if (users.some(u => u.email.toLowerCase() === normalizedEmail)) {
       return { ok: false, error: 'An account with this email already exists' }
@@ -120,11 +134,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const newUser: StoredUser = {
       id: crypto.randomUUID(),
-      name: payload.name.trim(),
+      name: normalizedName,
       email: normalizedEmail,
       employeeId: normalizedEmployeeId,
-      department: payload.department,
-      password: payload.password,
+      department: normalizedDepartment,
+      password: normalizedPassword,
       createdAt: new Date().toISOString(),
     }
 

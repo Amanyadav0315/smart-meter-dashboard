@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react'
-import { Eye, EyeOff, Mail, Lock, User, Building, Zap, Shield, ChevronRight, UserCheck } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User, Zap, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
@@ -7,7 +7,6 @@ interface FormData {
   name: string
   email: string
   employeeId: string
-  department: string
   password: string
   confirmPassword: string
 }
@@ -19,7 +18,6 @@ export default function SignUp() {
     name: '',
     email: '',
     employeeId: '',
-    department: '',
     password: '',
     confirmPassword: ''
   })
@@ -30,16 +28,6 @@ export default function SignUp() {
   const [authError, setAuthError] = useState('')
   const navigate = useNavigate()
   const { signUp } = useAuth()
-
-  const departments = [
-    'Engineering',
-    'Manufacturing',
-    'R&D',
-    'Quality Control',
-    'Operations',
-    'IT Services',
-    'Administration'
-  ]
 
   const validateForm = () => {
     const newErrors: FormErrors = {}
@@ -54,14 +42,13 @@ export default function SignUp() {
       newErrors.email = 'Please enter a valid email'
     }
     
-    if (!formData.employeeId) {
+    const employeeIdValue = formData.employeeId.trim()
+    if (!employeeIdValue) {
       newErrors.employeeId = 'Employee ID is required'
-    } else if (!/^TM\d{6}$/.test(formData.employeeId)) {
-      newErrors.employeeId = 'Employee ID must be in format TM123456'
-    }
-    
-    if (!formData.department) {
-      newErrors.department = 'Department is required'
+    } else if (employeeIdValue.length < 3) {
+      newErrors.employeeId = 'Employee ID must be at least 3 characters'
+    } else if (!/^[a-zA-Z0-9\-_/]+$/.test(employeeIdValue)) {
+      newErrors.employeeId = 'Use only letters, numbers, -, _, or /'
     }
     
     if (!formData.password) {
@@ -104,7 +91,6 @@ export default function SignUp() {
       name: formData.name,
       email: formData.email,
       employeeId: formData.employeeId,
-      department: formData.department,
       password: formData.password,
     })
 
@@ -159,14 +145,14 @@ export default function SignUp() {
                   Employee ID
                 </label>
                 <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="text"
                     name="employeeId"
                     value={formData.employeeId}
                     onChange={handleInputChange}
                     className={`w-full pl-10 pr-4 py-3 bg-slate-800/50 border ${errors.employeeId ? 'border-red-400' : 'border-slate-600'} rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
-                    placeholder="TM123456"
+                    placeholder="EMP001 or TM123456"
                   />
                 </div>
                 {errors.employeeId && <p className="mt-1 text-sm text-red-400">{errors.employeeId}</p>}
@@ -190,25 +176,6 @@ export default function SignUp() {
                 />
               </div>
               {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
-            </div>
-
-            {/* Department Field */}
-            <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
-                Department
-              </label>
-              <select
-                name="department"
-                value={formData.department}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-3 bg-white/5 border ${errors.department ? 'border-red-400' : 'border-white/20'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200`}
-              >
-                <option value="" className="bg-slate-800">Select Department</option>
-                {departments.map(dept => (
-                  <option key={dept} value={dept} className="bg-slate-800">{dept}</option>
-                ))}
-              </select>
-              {errors.department && <p className="mt-1 text-sm text-red-400">{errors.department}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
