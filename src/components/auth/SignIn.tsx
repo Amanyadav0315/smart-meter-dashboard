@@ -1,14 +1,17 @@
 import { useState, FormEvent } from 'react'
 import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [authError, setAuthError] = useState('')
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
   const navigate = useNavigate()
+  const { signIn } = useAuth()
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {}
@@ -35,13 +38,18 @@ export default function SignIn() {
     if (!validateForm()) return
     
     setIsLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // For demo, navigate to dashboard on successful login
-      navigate('/dashboard')
-    }, 2000)
+    setAuthError('')
+
+    const result = await signIn(email, password)
+
+    setIsLoading(false)
+
+    if (!result.ok) {
+      setAuthError(result.error ?? 'Unable to sign in')
+      return
+    }
+
+    navigate('/dashboard', { replace: true })
   }
 
   return (
@@ -118,6 +126,10 @@ export default function SignIn() {
                 'Sign In'
               )}
             </button>
+
+            {authError && (
+              <p className="text-sm text-red-400 text-center">{authError}</p>
+            )}
           </form>
 
           {/* Sign Up Link */}

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,20 +11,26 @@
 }
 
 html {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Manrope', sans-serif;
 }
 
 body {
-  background: #070b0f;
-  color: #f8fafc;
+  background:
+    radial-gradient(circle at 8% 4%, rgba(14, 165, 233, 0.22), transparent 26%),
+    radial-gradient(circle at 92% 0%, rgba(249, 115, 22, 0.2), transparent 28%),
+    linear-gradient(160deg, #05080f 0%, #0b1322 42%, #0a1020 100%);
+  color: #e2e8f0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Light theme styles */
 html.light body {
-  background: #f8fafc;
-  color: #1e293b;
+  background:
+    radial-gradient(circle at 10% 4%, rgba(125, 211, 252, 0.4), transparent 24%),
+    radial-gradient(circle at 88% 2%, rgba(251, 191, 36, 0.36), transparent 28%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 45%, #ecfeff 100%);
+  color: #111827;
 }
 
 html.light {
@@ -81,4 +89,77 @@ html.light input:-webkit-autofill:hover,
 html.light input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px #e5e7eb inset;
   -webkit-text-fill-color: #1e293b;
+}
+
+.dashboard-shell {
+  position: relative;
+}
+
+.dashboard-shell::before,
+.dashboard-shell::after {
+  content: '';
+  position: fixed;
+  width: 280px;
+  height: 280px;
+  border-radius: 999px;
+  filter: blur(74px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dashboard-shell::before {
+  background: rgba(14, 165, 233, 0.16);
+  top: 68px;
+  left: -90px;
+}
+
+.dashboard-shell::after {
+  background: rgba(249, 115, 22, 0.14);
+  bottom: -70px;
+  right: -100px;
+}
+
+html.light .dashboard-shell::before {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+html.light .dashboard-shell::after {
+  background: rgba(251, 146, 60, 0.2);
+}
+
+.dashboard-layer {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-title {
+  font-family: 'Space Grotesk', 'Manrope', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.panel-glass {
+  backdrop-filter: blur(14px);
+}
+
+.human-card {
+  box-shadow: 0 16px 42px rgba(2, 6, 23, 0.22);
+}
+
+html.light .human-card {
+  box-shadow: 0 12px 30px rgba(30, 41, 59, 0.1);
+}
+
+.animate-rise {
+  animation: rise 0.35s ease-out both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

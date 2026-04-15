@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, FC, ReactNode } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { Zap, RotateCw, Settings, Sun, Moon } from 'lucide-react'
+import { RotateCw, Settings, Sun, Moon } from 'lucide-react'
 import { useDashboard, type DistrictRow, type MeterTypeRow, type DailyUpdate } from './context/DashboardContext'
 import { useTheme } from './context/ThemeContext'
+import { useAuth } from './context/AuthContext'
+import tataPowerLogo from './assets/tata-power-ddl-logo.svg'
 import SignIn from './components/auth/SignIn'
 import SignUp from './components/auth/SignUp'
 import {
@@ -69,6 +71,12 @@ const perfBg = (p: number): string =>
 
 const uid = () => Math.random().toString(36).slice(2, 9)
 
+const resolveThemeDark = (isDark?: boolean): boolean => {
+  if (typeof isDark === 'boolean') return isDark
+  if (typeof document === 'undefined') return true
+  return document.documentElement.classList.contains('dark')
+}
+
 /* ═══════════════════════════════════════════════════
    SHARED COMPONENTS
 ═══════════════════════════════════════════════════ */
@@ -80,78 +88,117 @@ interface KPIProps {
   color?: string
   icon: string
   trend?: number
+  isDark?: boolean
 }
-const KPICard: FC<KPIProps> = ({ label, value, sub, color = '#3b82f6', icon, trend }) => (
-  <div className="relative overflow-hidden rounded-xl border border-slate-700/50 bg-slate-800/40 p-6 backdrop-blur-sm group hover:border-slate-600/50 transition-all duration-300">
+const KPICard: FC<KPIProps> = ({ label, value, sub, color = '#3b82f6', icon, trend, isDark }) => {
+  const dark = resolveThemeDark(isDark)
+  return (
+  <div className={`relative overflow-hidden rounded-2xl border p-6 panel-glass human-card group transition-all duration-300 ${
+    dark 
+      ? 'border-slate-700/70 bg-slate-900/55 hover:border-slate-500/80' 
+      : 'border-slate-300 bg-white/90 hover:border-slate-400'
+  }`}>
+    <div className="absolute inset-x-0 top-0 h-1" style={{ background: color }} />
+    <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full opacity-20" style={{ background: color }} />
     <div className="flex items-start justify-between">
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">{label}</p>
-        <p className="text-2xl font-semibold text-white leading-tight" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] mb-2 ${dark ? 'text-slate-400' : 'text-black'}`}>{label}</p>
+        <p className={`text-2xl font-bold leading-tight ${dark ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           {value}
         </p>
-        {sub && <p className="mt-2 text-sm text-slate-500 leading-relaxed">{sub}</p>}
+        {sub && <p className={`mt-2 text-sm leading-relaxed ${dark ? 'text-slate-400' : 'text-black'}`}>{sub}</p>}
         {trend !== undefined && (
           <div className={`mt-3 inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md ${trend >= 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
             {trend >= 0 ? '▲' : '▼'} {Math.abs(trend).toFixed(2)}% vs prev
           </div>
         )}
       </div>
-      <div className="text-xl opacity-40 ml-3 mt-0.5">{icon}</div>
+      <div className={`text-2xl opacity-60 ml-3 mt-0.5 ${dark ? 'text-white' : 'text-slate-900'}`}>{icon}</div>
     </div>
   </div>
 )
+}
 
-const ChartTip: FC<TooltipProps<ValueType, NameType>> = ({ active, payload, label }) => {
+const ChartTip: FC<TooltipProps<ValueType, NameType> & { isDark?: boolean }> = ({ active, payload, label, isDark }) => {
+  const dark = resolveThemeDark(isDark)
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl border border-white/10 bg-slate-950/95 backdrop-blur-xl p-3 text-xs shadow-2xl min-w-[140px]">
-      <p className="font-bold text-white mb-2">{label}</p>
+    <div className={`rounded-xl border backdrop-blur-xl p-3 text-xs shadow-2xl min-w-[140px] ${
+      dark 
+        ? 'border-white/10 bg-slate-950/95' 
+        : 'border-slate-300 bg-white/95'
+    }`}>
+      <p className={`font-bold mb-2 ${dark ? 'text-white' : 'text-slate-900'}`}>{label}</p>
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2 py-0.5">
           <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: (p.fill ?? p.color) as string }} />
-          <span className="text-slate-400 flex-1 truncate">{p.name}:</span>
-          <span className="text-white font-mono ml-1">{fmtFull(p.value as number)}</span>
+          <span className={`flex-1 truncate ${dark ? 'text-slate-400' : 'text-black'}`}>{p.name}:</span>
+          <span className={`font-mono ml-1 ${dark ? 'text-white' : 'text-slate-900'}`}>{fmtFull(p.value as number)}</span>
         </div>
       ))}
     </div>
   )
 }
 
-const Badge: FC<{ v: number }> = ({ v }) => (
-  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border font-mono ${perfBg(v)}`}>
+const Badge: FC<{ v: number; isDark?: boolean }> = ({ v, isDark }) => {
+  const dark = resolveThemeDark(isDark)
+  return (
+  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border font-mono ${
+    dark ? perfBg(v) : 'bg-white text-black border-slate-400'
+  }`}>
     {v}%
   </span>
 )
+}
 
-const ChartCard: FC<{ title: string; children: ReactNode; className?: string }> = ({ title, children, className = '' }) => (
-  <div className={`rounded-2xl border border-white/8 bg-gradient-to-br from-white/4 to-transparent p-5 ${className}`}>
-    <h3 className="text-[10px] font-bold text-slate-500 tracking-[0.12em] uppercase mb-4">{title}</h3>
+const ChartCard: FC<{ title: string; children: ReactNode; className?: string; isDark?: boolean }> = ({ title, children, className = '', isDark }) => {
+  const dark = resolveThemeDark(isDark)
+  return (
+  <div className={`rounded-3xl border p-5 panel-glass human-card animate-rise ${className} ${
+    dark
+      ? 'border-slate-700/70 bg-gradient-to-br from-slate-900/65 to-slate-900/35'
+      : 'border-slate-200 bg-gradient-to-br from-white/95 to-slate-50/90'
+  }`}>
+    <h3 className={`text-[11px] font-bold tracking-[0.14em] uppercase mb-4 ${
+      dark ? 'text-slate-500' : 'text-black'
+    }`}>{title}</h3>
     {children}
   </div>
 )
+}
 
-const FilterSelect: FC<{ value: string; onChange: (v: string) => void; options: string[]; label: string }> = ({ value, onChange, options, label }) => (
+const FilterSelect: FC<{ value: string; onChange: (v: string) => void; options: string[]; label: string; isDark?: boolean }> = ({ value, onChange, options, label, isDark }) => {
+  const dark = resolveThemeDark(isDark)
+  return (
   <select
     value={value}
     onChange={e => onChange(e.target.value)}
-    className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500/50 cursor-pointer"
+    className={`rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-blue-500/50 cursor-pointer border transition-colors ${
+      dark
+        ? 'bg-slate-900/70 border-slate-600 text-slate-200'
+        : 'bg-white border-slate-300 text-black'
+    }`}
   >
     <option value="">{label}</option>
-    {options.map(o => <option key={o} value={o} style={{ background: '#0f172a' }}>{o}</option>)}
+    {options.map(o => <option key={o} value={o} style={{ background: dark ? '#0f172a' : '#f8fafc' }}>{o}</option>)}
   </select>
 )
+}
 
 /* ═══════════════════════════════════════════════════
    OVERVIEW VIEW
 ═══════════════════════════════════════════════════ */
 
-const OverviewView: FC<{ districts: DistrictRow[]; meterTypes: MeterTypeRow[] }> = ({ districts, meterTypes }) => {
+const OverviewView: FC<{ districts: DistrictRow[]; meterTypes: MeterTypeRow[]; isDark?: boolean }> = ({ districts, meterTypes, isDark = true }) => {
   const totalMeters = districts.reduce((s, d) => s + d.total, 0)
   const totalD1     = districts.reduce((s, d) => s + d.d1, 0)
   const totalNever  = districts.reduce((s, d) => s + d.never, 0)
   const avgPct      = districts.length
     ? (districts.reduce((s, d) => s + d.pct, 0) / districts.length).toFixed(2)
     : '0'
+
+  // Theme-aware ChartTip for this view
+  const ThemedChartTip: FC<TooltipProps<ValueType, NameType>> = (props) => <ChartTip {...props} isDark={isDark} />
 
   const radarData = districts.map(d => ({
     district: d.district.split(' ')[0],
@@ -172,21 +219,25 @@ const OverviewView: FC<{ districts: DistrictRow[]; meterTypes: MeterTypeRow[] }>
     <div className="space-y-6">
       {/* KPI Row */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <KPICard label="Total Smart Meters"  value={fmt(totalMeters)}  sub={`${districts.length} districts monitored`}               color="#3b82f6" icon="⚡" />
-        <KPICard label="Communicated Today"  value={fmt(totalD1)}      sub={`${((totalD1/totalMeters)*100).toFixed(1)}% of total`}    color="#10b981" icon="✅" trend={0.41} />
-        <KPICard label="Silent / Never"      value={fmtFull(totalNever)} sub="Require field inspection"                              color="#ef4444" icon="🔇" trend={-0.03} />
-        <KPICard label="Network Performance" value={`${avgPct}%`}      sub="Avg across all districts"                                color="#8b5cf6" icon="📡" />
+        <KPICard label="Total Smart Meters"  value={fmt(totalMeters)}  sub={`${districts.length} districts monitored`}               color="#3b82f6" icon="⚡" isDark={isDark} />
+        <KPICard label="Communicated Today"  value={fmt(totalD1)}      sub={`${((totalD1/totalMeters)*100).toFixed(1)}% of total`}    color="#10b981" icon="✅" trend={0.41} isDark={isDark} />
+        <KPICard label="Silent / Never"      value={fmtFull(totalNever)} sub="Require field inspection"                              color="#ef4444" icon="🔇" trend={-0.03} isDark={isDark} />
+        <KPICard label="Network Performance" value={`${avgPct}%`}      sub="Avg across all districts"                                color="#8b5cf6" icon="📡" isDark={isDark} />
       </div>
 
       {/* Comm Tech Pills */}
       <div className="grid grid-cols-3 gap-3">
         {COMM_TECH.map(t => (
-          <div key={t.tech} className="rounded-2xl border border-white/8 bg-white/3 p-4 flex items-center gap-3">
+          <div key={t.tech} className={`rounded-2xl border p-4 flex items-center gap-3 ${
+            isDark ? 'border-white/8 bg-white/3' : 'border-slate-300 bg-slate-100'
+          }`}>
             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: t.color }} />
             <div>
-              <p className="text-[10px] text-slate-500 font-semibold tracking-widest uppercase">{t.tech}</p>
-              <p className="text-sm font-black text-white" style={{ fontFamily: "'Space Mono',monospace" }}>{fmt(t.meters)}</p>
-              <p className="text-[10px] text-slate-500">{t.pct}% of fleet</p>
+              <p className={`text-[10px] font-semibold tracking-widest uppercase ${
+                isDark ? 'text-slate-500' : 'text-black'
+              }`}>{t.tech}</p>
+              <p className={`text-sm font-black ${isDark ? 'text-white' : 'text-black'}`} style={{ fontFamily: "'Space Grotesk', monospace" }}>{fmt(t.meters)}</p>
+              <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-black'}`}>{t.pct}% of fleet</p>
             </div>
           </div>
         ))}
@@ -199,8 +250,7 @@ const OverviewView: FC<{ districts: DistrictRow[]; meterTypes: MeterTypeRow[] }>
             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
             <XAxis dataKey="district" tick={{ fill:'#475569', fontSize:9 }} angle={-38} textAnchor="end" interval={0} />
             <YAxis tick={{ fill:'#475569', fontSize:9 }} tickFormatter={fmt} />
-            <Tooltip content={<ChartTip />} />
-            <Legend wrapperStyle={{ fontSize:10, color:'#64748b', paddingTop:8 }} />
+            <Tooltip content={<ThemedChartTip />} />
             <Bar dataKey="d1"      name="1 Day"       stackId="a" fill="#10b981" />
             <Bar dataKey="d2_5"    name="2-5 Days"    stackId="a" fill="#3b82f6" />
             <Bar dataKey="d6_30"   name="6-30 Days"   stackId="a" fill="#f59e0b" />
@@ -289,9 +339,10 @@ interface DistrictViewProps {
   districts: DistrictRow[]
   selected: string
   setSelected: (d: string) => void
+  isDark?: boolean
 }
 
-const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected }) => {
+const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected, isDark = true }) => {
   const [filterPct, setFilterPct] = useState('')
   const [sortKey, setSortKey]   = useState<keyof DistrictRow>('pct')
   const [sortDir, setSortDir]   = useState<SortDir>('desc')
@@ -327,7 +378,9 @@ const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected 
 
   const TH: FC<{ label: string; k: keyof DistrictRow }> = ({ label, k }) => (
     <th onClick={() => handleSort(k)}
-      className="text-left py-2.5 px-3 text-[10px] text-slate-500 font-semibold uppercase tracking-wider cursor-pointer hover:text-white whitespace-nowrap select-none transition-colors">
+      className={`text-left py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider cursor-pointer whitespace-nowrap select-none transition-colors ${
+        isDark ? 'text-slate-500 hover:text-white' : 'text-black hover:text-black'
+      }`}>
       {label}{sortKey === k && <span className="ml-1 text-blue-400">{sortDir === 'asc' ? '↑' : '↓'}</span>}
     </th>
   )
@@ -340,8 +393,12 @@ const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected 
           <button key={dd.id} onClick={() => setSelected(dd.district)}
             className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border ${
               selected === dd.district
-                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/25'
-                : 'bg-white/4 border-white/8 text-slate-400 hover:bg-white/8 hover:text-white'
+                ? isDark
+                  ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/25'
+                  : 'bg-blue-200 border-blue-400 text-black shadow-lg shadow-blue-500/15'
+                : isDark
+                  ? 'bg-white/4 border-white/8 text-slate-400 hover:bg-white/8 hover:text-white'
+                  : 'bg-slate-100 border-slate-300 text-black hover:bg-slate-200 hover:text-black'
             }`}>
             {dd.district.split(' ').map(w => w[0]).join('')}
             <span className="ml-1.5 opacity-60">{dd.pct}%</span>
@@ -353,16 +410,16 @@ const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected 
       <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-xl font-black text-white">{d.district}</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Last updated: {d.lastUpdated}</p>
+            <h2 className={`text-xl font-black ${isDark ? 'text-white' : 'text-black'}`}>{d.district}</h2>
+            <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-black'}`}>Last updated: {d.lastUpdated}</p>
           </div>
-          <Badge v={d.pct} />
+          <Badge v={d.pct} isDark={isDark} />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-          <KPICard label="Total Meters" value={fmtFull(d.total)}   sub="Installed"                                                    color="#3b82f6" icon="📟" />
-          <KPICard label="Active 1-Day" value={fmtFull(d.d1)}      sub={`${((d.d1/d.total)*100).toFixed(1)}% communicating`}          color="#10b981" icon="✅" />
-          <KPICard label="Never Comm."  value={fmtFull(d.never)}   sub={`${((d.never/d.total)*100).toFixed(1)}% — needs inspection`}  color="#ef4444" icon="🔇" />
-          <KPICard label="Clock Drift"  value={fmtFull(d.drift)}   sub="Time sync issues"                                             color="#6b7280" icon="⏰" />
+          <KPICard label="Total Meters" value={fmtFull(d.total)}   sub="Installed"                                                    color="#3b82f6" icon="📟" isDark={isDark} />
+          <KPICard label="Active 1-Day" value={fmtFull(d.d1)}      sub={`${((d.d1/d.total)*100).toFixed(1)}% communicating`}          color="#10b981" icon="✅" isDark={isDark} />
+          <KPICard label="Never Comm."  value={fmtFull(d.never)}   sub={`${((d.never/d.total)*100).toFixed(1)}% — needs inspection`}  color="#ef4444" icon="🔇" isDark={isDark} />
+          <KPICard label="Clock Drift"  value={fmtFull(d.drift)}   sub="Time sync issues"                                             color="#6b7280" icon="⏰" isDark={isDark} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ChartCard title="Ageing Pie Chart">
@@ -383,8 +440,8 @@ const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected 
             <ResponsiveContainer width="100%" height={230}>
               <BarChart data={ageData} margin={{ top:4, right:8, bottom:42, left:8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
-                <XAxis dataKey="bucket" tick={{ fill:'#475569', fontSize:8 }} angle={-25} textAnchor="end" />
-                <YAxis tick={{ fill:'#475569', fontSize:9 }} tickFormatter={fmt} />
+                <XAxis dataKey="bucket" tick={{ fill: isDark ? '#475569' : '#000000', fontSize:8 }} angle={-25} textAnchor="end" />
+                <YAxis tick={{ fill: isDark ? '#475569' : '#000000', fontSize:9 }} tickFormatter={fmt} />
                 <Tooltip content={<ChartTip />} />
                 <Bar dataKey="value" name="Meters" radius={[4,4,0,0]}>
                   {ageData.map((e,i) => <Cell key={i} fill={e.color} />)}
@@ -396,16 +453,16 @@ const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected 
       </div>
 
       {/* Comparison table */}
-      <div className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
-        <div className="p-4 border-b border-white/8 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs font-bold text-slate-300">All Districts Comparison <span className="text-slate-600 font-normal">(click headers to sort)</span></p>
+      <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-white/8 bg-white/3' : 'border-slate-300 bg-slate-50'}`}>
+        <div className={`p-4 border-b flex flex-wrap items-center justify-between gap-3 ${isDark ? 'border-white/8' : 'border-slate-300'}`}>
+          <p className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-black'}`}>All Districts Comparison <span className={`font-normal ${isDark ? 'text-slate-600' : 'text-black'}`}>(click headers to sort)</span></p>
           <FilterSelect value={filterPct} onChange={setFilterPct}
-            options={['high','medium','low']} label="Filter by performance" />
+            options={['high','medium','low']} label="Filter by performance" isDark={isDark} />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-white/8">
+              <tr className={`border-b ${isDark ? 'border-white/8' : 'border-slate-300'}`}>
                 <TH label="District" k="district" />
                 <TH label="Total"    k="total" />
                 <TH label="1 Day"    k="d1" />
@@ -421,18 +478,22 @@ const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected 
               {filtered.map(row => (
                 <tr key={row.id}
                   onClick={() => setSelected(row.district)}
-                  className={`border-b border-white/4 cursor-pointer transition-colors ${
-                    selected === row.district ? 'bg-blue-500/10' : 'hover:bg-white/4'
+                  className={`border-b cursor-pointer transition-colors ${
+                    isDark
+                      ? 'border-white/4 hover:bg-white/4'
+                      : 'border-slate-300 hover:bg-slate-200'
+                  } ${
+                    selected === row.district ? 'bg-blue-500/10' : ''
                   }`}>
-                  <td className="py-2.5 px-3 text-white font-semibold">{row.district}</td>
-                  <td className="py-2.5 px-3 text-slate-300 font-mono">{fmtFull(row.total)}</td>
-                  <td className="py-2.5 px-3 text-emerald-400 font-mono">{fmtFull(row.d1)}</td>
-                  <td className="py-2.5 px-3 text-blue-400 font-mono">{fmtFull(row.d2_5)}</td>
-                  <td className="py-2.5 px-3 text-amber-400 font-mono">{fmtFull(row.d6_30)}</td>
-                  <td className="py-2.5 px-3 text-orange-400 font-mono">{fmtFull(row.d31_90)}</td>
-                  <td className="py-2.5 px-3 text-purple-400 font-mono">{fmtFull(row.d180)}</td>
-                  <td className="py-2.5 px-3 text-slate-500 font-mono">{fmtFull(row.never)}</td>
-                  <td className="py-2.5 px-3"><Badge v={row.pct} /></td>
+                  <td className={`py-2.5 px-3 font-semibold ${isDark ? 'text-white' : 'text-black'}`}>{row.district}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-slate-300' : 'text-black'}`}>{fmtFull(row.total)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-emerald-400' : 'text-black'}`}>{fmtFull(row.d1)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-blue-400' : 'text-black'}`}>{fmtFull(row.d2_5)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-amber-400' : 'text-black'}`}>{fmtFull(row.d6_30)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-orange-400' : 'text-black'}`}>{fmtFull(row.d31_90)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-purple-400' : 'text-black'}`}>{fmtFull(row.d180)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-slate-500' : 'text-black'}`}>{fmtFull(row.never)}</td>
+                  <td className="py-2.5 px-3"><Badge v={row.pct} isDark={isDark} /></td>
                 </tr>
               ))}
             </tbody>
@@ -447,7 +508,7 @@ const DistrictView: FC<DistrictViewProps> = ({ districts, selected, setSelected 
    METER TYPES VIEW
 ═══════════════════════════════════════════════════ */
 
-const MeterTypeView: FC<{ meterTypes: MeterTypeRow[] }> = ({ meterTypes }) => {
+const MeterTypeView: FC<{ meterTypes: MeterTypeRow[]; isDark?: boolean }> = ({ meterTypes, isDark = true }) => {
   const [selected, setSelected] = useState<string | null>(null)
   const sel = meterTypes.find(m => m.type === selected)
 
@@ -460,9 +521,9 @@ const MeterTypeView: FC<{ meterTypes: MeterTypeRow[] }> = ({ meterTypes }) => {
             style={selected === m.type
               ? { borderColor: m.color, background: `${m.color}18`, boxShadow: `0 0 24px ${m.color}28` }
               : { borderColor:'rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)' }}>
-            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">{m.type}</p>
-            <p className="text-xl font-black text-white" style={{ fontFamily:"'Space Mono',monospace" }}>{fmt(m.total)}</p>
-            <div className="mt-2"><Badge v={m.pct} /></div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-500' : 'text-black'}`}>{m.type}</p>
+            <p className={`text-xl font-black ${isDark ? 'text-white' : 'text-black'}`} style={{ fontFamily:"'Space Mono',monospace" }}>{fmt(m.total)}</p>
+            <div className="mt-2"><Badge v={m.pct} isDark={isDark} /></div>
           </button>
         ))}
       </div>
@@ -470,14 +531,14 @@ const MeterTypeView: FC<{ meterTypes: MeterTypeRow[] }> = ({ meterTypes }) => {
       {sel && (
         <div className="rounded-2xl border p-5" style={{ borderColor:`${sel.color}30`, background:`${sel.color}08` }}>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-black text-white">{sel.type} — Detail</h3>
-            <button onClick={() => setSelected(null)} className="text-slate-500 hover:text-white text-xs transition-colors">✕ close</button>
+            <h3 className={`text-base font-black ${isDark ? 'text-white' : 'text-black'}`}>{sel.type} — Detail</h3>
+            <button onClick={() => setSelected(null)} className={`text-xs transition-colors ${isDark ? 'text-slate-500 hover:text-white' : 'text-black hover:text-black'}`}>✕ close</button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <KPICard label="Total"       value={fmtFull(sel.total)}  color={sel.color}         icon="📊" />
-            <KPICard label="1-Day Active" value={fmtFull(sel.d1)}    color="#10b981"           icon="✅" />
-            <KPICard label="Never Comm." value={fmtFull(sel.never)}  color="#ef4444"           icon="🔇" />
-            <KPICard label="Performance" value={`${sel.pct}%`}       color={perfColor(sel.pct)} icon="📈" />
+            <KPICard label="Total"       value={fmtFull(sel.total)}  color={sel.color}         icon="📊" isDark={isDark} />
+            <KPICard label="1-Day Active" value={fmtFull(sel.d1)}    color="#10b981"           icon="✅" isDark={isDark} />
+            <KPICard label="Never Comm." value={fmtFull(sel.never)}  color="#ef4444"           icon="🔇" isDark={isDark} />
+            <KPICard label="Performance" value={`${sel.pct}%`}       color={perfColor(sel.pct)} icon="📈" isDark={isDark} />
           </div>
         </div>
       )}
@@ -502,8 +563,8 @@ const MeterTypeView: FC<{ meterTypes: MeterTypeRow[] }> = ({ meterTypes }) => {
           <ResponsiveContainer width="100%" height={270}>
             <BarChart data={meterTypes} margin={{ left:8, right:8, bottom:56 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
-              <XAxis dataKey="type" tick={{ fill:'#475569', fontSize:9 }} angle={-28} textAnchor="end" interval={0} />
-              <YAxis domain={[60,100]} tick={{ fill:'#475569', fontSize:9 }} tickFormatter={(v:number) => `${v}%`} />
+              <XAxis dataKey="type" tick={{ fill: isDark ? '#475569' : '#000000', fontSize:9 }} angle={-28} textAnchor="end" interval={0} />
+              <YAxis domain={[60,100]} tick={{ fill: isDark ? '#475569' : '#000000', fontSize:9 }} tickFormatter={(v:number) => `${v}%`} />
               <Tooltip content={<ChartTip />} />
               <Bar dataKey="pct" name="Performance %" radius={[4,4,0,0]}>
                 {meterTypes.map((m,i) => <Cell key={i} fill={m.color} />)}
@@ -517,10 +578,10 @@ const MeterTypeView: FC<{ meterTypes: MeterTypeRow[] }> = ({ meterTypes }) => {
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={meterTypes} margin={{ left:8, right:8, bottom:56 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
-            <XAxis dataKey="type" tick={{ fill:'#475569', fontSize:9 }} angle={-28} textAnchor="end" interval={0} />
-            <YAxis tick={{ fill:'#475569', fontSize:9 }} tickFormatter={fmt} />
+            <XAxis dataKey="type" tick={{ fill: isDark ? '#475569' : '#000000', fontSize:9 }} angle={-28} textAnchor="end" interval={0} />
+            <YAxis tick={{ fill: isDark ? '#475569' : '#000000', fontSize:9 }} tickFormatter={fmt} />
             <Tooltip content={<ChartTip />} />
-            <Legend wrapperStyle={{ fontSize:9, color:'#64748b', paddingTop:4 }} />
+            <Legend wrapperStyle={{ fontSize:9, color: isDark ? '#64748b' : '#000000', paddingTop:4 }} />
             <Bar dataKey="d1"    name="1 Day"     stackId="a" fill="#10b981" />
             <Bar dataKey="d2_5"  name="2-5 Days"  stackId="a" fill="#3b82f6" />
             <Bar dataKey="d6_30" name="6-30 Days"  stackId="a" fill="#f59e0b" />
@@ -537,7 +598,7 @@ const MeterTypeView: FC<{ meterTypes: MeterTypeRow[] }> = ({ meterTypes }) => {
    AGEING VIEW
 ═══════════════════════════════════════════════════ */
 
-const AgeingView: FC<{ districts: DistrictRow[] }> = ({ districts }) => {
+const AgeingView: FC<{ districts: DistrictRow[]; isDark?: boolean }> = ({ districts, isDark = true }) => {
   const [districtFilter, setDistrictFilter] = useState('')
   const [sortKey, setSortKey] = useState<keyof DistrictRow>('pct')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -568,7 +629,11 @@ const AgeingView: FC<{ districts: DistrictRow[] }> = ({ districts }) => {
 
   const TH: FC<{ label: string; k: keyof DistrictRow }> = ({ label, k }) => (
     <th onClick={() => handleSort(k)}
-      className="text-left py-2.5 px-3 text-[10px] text-slate-500 font-semibold uppercase tracking-wider cursor-pointer hover:text-white whitespace-nowrap select-none transition-colors">
+      className={`text-left py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider cursor-pointer whitespace-nowrap select-none transition-colors ${
+        isDark
+            ? 'text-slate-500 hover:text-white'
+            : 'text-black hover:text-black'
+      }`}>
       {label}{sortKey === k && <span className="ml-1 text-blue-400">{sortDir === 'asc' ? '↑' : '↓'}</span>}
     </th>
   )
@@ -576,10 +641,10 @@ const AgeingView: FC<{ districts: DistrictRow[] }> = ({ districts }) => {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <KPICard label="Comm ≤ 1 Day"      value={fmt(totals.d1)}   sub={`${((totals.d1/totals.total)*100).toFixed(1)}% of fleet`}   color="#10b981" icon="🟢" />
-        <KPICard label="Comm ≤ 30 Days"    value={fmt(totals.d1+totals.d2_5+totals.d6_30)} sub="Healthy window"                     color="#3b82f6" icon="🔵" />
-        <KPICard label="Silent > 30 Days"  value={fmtFull(totals.d31_90+totals.d91_180+totals.d180)} sub="Intervention needed"      color="#f97316" icon="🟠" />
-        <KPICard label="Never Comm."       value={fmtFull(totals.never)} sub="Physical survey required"                              color="#ef4444" icon="🔴" />
+        <KPICard label="Comm ≤ 1 Day"      value={fmt(totals.d1)}   sub={`${((totals.d1/totals.total)*100).toFixed(1)}% of fleet`}   color="#10b981" icon="🟢" isDark={isDark} />
+        <KPICard label="Comm ≤ 30 Days"    value={fmt(totals.d1+totals.d2_5+totals.d6_30)} sub="Healthy window"                     color="#3b82f6" icon="🔵" isDark={isDark} />
+        <KPICard label="Silent > 30 Days"  value={fmtFull(totals.d31_90+totals.d91_180+totals.d180)} sub="Intervention needed"      color="#f97316" icon="🟠" isDark={isDark} />
+        <KPICard label="Never Comm."       value={fmtFull(totals.never)} sub="Physical survey required"                              color="#ef4444" icon="🔴" isDark={isDark} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -600,7 +665,7 @@ const AgeingView: FC<{ districts: DistrictRow[] }> = ({ districts }) => {
             {SOURCE_DATA.map(s => (
               <div key={s.name} className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
-                <span className="text-[11px] text-slate-400">{s.name}: <span className="text-white font-mono">{fmtFull(s.value)}</span></span>
+                <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-black'}`}>{s.name}: <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{fmtFull(s.value)}</span></span>
               </div>
             ))}
           </div>
@@ -623,7 +688,7 @@ const AgeingView: FC<{ districts: DistrictRow[] }> = ({ districts }) => {
             {STATUS_DATA.map(s => (
               <div key={s.name} className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
-                <span className="text-[11px] text-slate-400">{s.name}: <span className="text-white font-mono">{fmtFull(s.value)}</span></span>
+                <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-black'}`}>{s.name}: <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{fmtFull(s.value)}</span></span>
               </div>
             ))}
           </div>
@@ -631,16 +696,16 @@ const AgeingView: FC<{ districts: DistrictRow[] }> = ({ districts }) => {
       </div>
 
       {/* Full sortable table */}
-      <div className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
-        <div className="p-4 border-b border-white/8 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs font-bold text-slate-300">Full Ageing Table</p>
+      <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-white/8 bg-white/3' : 'border-slate-300 bg-slate-50'}`}>
+        <div className={`p-4 border-b flex flex-wrap items-center justify-between gap-3 ${isDark ? 'border-white/8' : 'border-slate-300'}`}>
+          <p className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-black'}`}>Full Ageing Table</p>
           <FilterSelect value={districtFilter} onChange={setDistrictFilter}
-            options={districts.map(d => d.district)} label="All Districts" />
+            options={districts.map(d => d.district)} label="All Districts" isDark={isDark} />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-white/8">
+              <tr className={`border-b ${isDark ? 'border-white/8' : 'border-slate-300'}`}>
                 <TH label="District"   k="district" />
                 <TH label="Total"      k="total" />
                 <TH label="1 Day"      k="d1" />
@@ -656,31 +721,35 @@ const AgeingView: FC<{ districts: DistrictRow[] }> = ({ districts }) => {
             </thead>
             <tbody>
               {filtered.map(row => (
-                <tr key={row.id} className="border-b border-white/4 hover:bg-white/4 transition-colors">
-                  <td className="py-2.5 px-3 font-semibold text-white">{row.district}</td>
-                  <td className="py-2.5 px-3 text-slate-300 font-mono">{fmtFull(row.total)}</td>
-                  <td className="py-2.5 px-3 text-emerald-400 font-mono">{fmtFull(row.d1)}</td>
-                  <td className="py-2.5 px-3 text-blue-400 font-mono">{fmtFull(row.d2_5)}</td>
-                  <td className="py-2.5 px-3 text-amber-400 font-mono">{fmtFull(row.d6_30)}</td>
-                  <td className="py-2.5 px-3 text-orange-400 font-mono">{fmtFull(row.d31_90)}</td>
-                  <td className="py-2.5 px-3 text-red-400 font-mono">{fmtFull(row.d91_180)}</td>
-                  <td className="py-2.5 px-3 text-purple-400 font-mono">{fmtFull(row.d180)}</td>
-                  <td className="py-2.5 px-3 text-slate-500 font-mono">{fmtFull(row.never)}</td>
-                  <td className="py-2.5 px-3 text-slate-600 font-mono">{fmtFull(row.drift)}</td>
-                  <td className="py-2.5 px-3"><Badge v={row.pct} /></td>
+                <tr key={row.id} className={`border-b transition-colors ${
+                  isDark
+                    ? 'border-white/4 hover:bg-white/4'
+                    : 'border-slate-300 hover:bg-slate-200'
+                }`}>
+                  <td className={`py-2.5 px-3 font-semibold ${isDark ? 'text-white' : 'text-black'}`}>{row.district}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-slate-300' : 'text-black'}`}>{fmtFull(row.total)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-emerald-400' : 'text-black'}`}>{fmtFull(row.d1)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-blue-400' : 'text-black'}`}>{fmtFull(row.d2_5)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-amber-400' : 'text-black'}`}>{fmtFull(row.d6_30)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-orange-400' : 'text-black'}`}>{fmtFull(row.d31_90)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-red-400' : 'text-black'}`}>{fmtFull(row.d91_180)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-purple-400' : 'text-black'}`}>{fmtFull(row.d180)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-slate-500' : 'text-black'}`}>{fmtFull(row.never)}</td>
+                  <td className={`py-2.5 px-3 font-mono ${isDark ? 'text-slate-600' : 'text-black'}`}>{fmtFull(row.drift)}</td>
+                  <td className="py-2.5 px-3"><Badge v={row.pct} isDark={isDark} /></td>
                 </tr>
               ))}
               {/* Totals row */}
-              <tr className="bg-white/5 border-t border-white/10">
-                <td className="py-2.5 px-3 text-slate-300 font-bold">TOTAL</td>
-                <td className="py-2.5 px-3 text-white font-bold font-mono">{fmtFull(totals.total)}</td>
-                <td className="py-2.5 px-3 text-emerald-400 font-bold font-mono">{fmtFull(totals.d1)}</td>
-                <td className="py-2.5 px-3 text-blue-400 font-bold font-mono">{fmtFull(totals.d2_5)}</td>
-                <td className="py-2.5 px-3 text-amber-400 font-bold font-mono">{fmtFull(totals.d6_30)}</td>
-                <td className="py-2.5 px-3 text-orange-400 font-bold font-mono">{fmtFull(totals.d31_90)}</td>
-                <td className="py-2.5 px-3 text-red-400 font-bold font-mono">{fmtFull(totals.d91_180)}</td>
-                <td className="py-2.5 px-3 text-purple-400 font-bold font-mono">{fmtFull(totals.d180)}</td>
-                <td className="py-2.5 px-3 text-slate-500 font-bold font-mono">{fmtFull(totals.never)}</td>
+              <tr className={`border-t ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-300'}`}>
+                <td className={`py-2.5 px-3 font-bold ${isDark ? 'text-slate-300' : 'text-black'}`}>TOTAL</td>
+                <td className={`py-2.5 px-3 font-bold font-mono ${isDark ? 'text-white' : 'text-black'}`}>{fmtFull(totals.total)}</td>
+                <td className={`py-2.5 px-3 font-bold font-mono ${isDark ? 'text-emerald-400' : 'text-black'}`}>{fmtFull(totals.d1)}</td>
+                <td className={`py-2.5 px-3 font-bold font-mono ${isDark ? 'text-blue-400' : 'text-black'}`}>{fmtFull(totals.d2_5)}</td>
+                <td className={`py-2.5 px-3 font-bold font-mono ${isDark ? 'text-amber-400' : 'text-black'}`}>{fmtFull(totals.d6_30)}</td>
+                <td className={`py-2.5 px-3 font-bold font-mono ${isDark ? 'text-orange-400' : 'text-black'}`}>{fmtFull(totals.d31_90)}</td>
+                <td className={`py-2.5 px-3 font-bold font-mono ${isDark ? 'text-red-400' : 'text-black'}`}>{fmtFull(totals.d91_180)}</td>
+                <td className={`py-2.5 px-3 font-bold font-mono ${isDark ? 'text-purple-400' : 'text-black'}`}>{fmtFull(totals.d180)}</td>
+                <td className={`py-2.5 px-3 font-bold font-mono ${isDark ? 'text-slate-500' : 'text-black'}`}>{fmtFull(totals.never)}</td>
                 <td colSpan={2}></td>
               </tr>
             </tbody>
@@ -695,7 +764,7 @@ const AgeingView: FC<{ districts: DistrictRow[] }> = ({ districts }) => {
    UPDATES VIEW
 ═══════════════════════════════════════════════════ */
 
-const UpdatesView: FC<{ updates: DailyUpdate[] }> = ({ updates }) => {
+const UpdatesView: FC<{ updates: DailyUpdate[]; isDark?: boolean }> = ({ updates, isDark = true }) => {
   const [filter, setFilter] = useState('')
   const filtered = filter ? updates.filter(u => u.type === filter) : updates
 
@@ -715,15 +784,15 @@ const UpdatesView: FC<{ updates: DailyUpdate[] }> = ({ updates }) => {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <p className="text-sm font-bold text-white">Network Update Log</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Daily field events, maintenance notes &amp; performance changes</p>
+          <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-black'}`}>Network Update Log</p>
+          <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-500' : 'text-black'}`}>Daily field events, maintenance notes &amp; performance changes</p>
         </div>
         <FilterSelect value={filter} onChange={setFilter}
-          options={['improvement','degradation','neutral']} label="All Types" />
+          options={['improvement','degradation','neutral']} label="All Types" isDark={isDark} />
       </div>
 
       {filtered.length === 0 && (
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-12 text-center text-slate-500 text-sm">
+        <div className={`rounded-2xl border p-12 text-center text-sm ${isDark ? 'border-white/8 bg-white/3 text-slate-500' : 'border-slate-300 bg-slate-50 text-black'}`}>
           No updates found.
         </div>
       )}
@@ -733,24 +802,28 @@ const UpdatesView: FC<{ updates: DailyUpdate[] }> = ({ updates }) => {
           <div key={u.id} className={`rounded-2xl border p-4 ${typeStyle[u.type]}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <span className={`text-base mt-0.5 ${typeTextColor[u.type]}`}>{typeIcon[u.type]}</span>
+                <span className={`text-base mt-0.5 ${isDark ? typeTextColor[u.type] : 'text-black'}`}>{typeIcon[u.type]}</span>
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-sm font-bold text-white">{u.district}</span>
-                    <span className="text-[10px] text-slate-600">·</span>
-                    <span className="text-[10px] text-slate-500 font-mono">{u.date}</span>
+                    <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-black'}`}>{u.district}</span>
+                    <span className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-black'}`}>·</span>
+                    <span className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-black'}`}>{u.date}</span>
                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border capitalize ${
-                      u.type==='improvement' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
-                      : u.type==='degradation' ? 'bg-red-500/15 text-red-400 border-red-500/25'
-                      : 'bg-slate-500/15 text-slate-400 border-slate-500/25'
+                      isDark
+                        ? u.type==='improvement' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                        : u.type==='degradation' ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                        : 'bg-slate-500/15 text-slate-400 border-slate-500/25'
+                        : 'bg-white text-black border-slate-400'
                     }`}>{u.type}</span>
                   </div>
-                  <p className="text-[12px] text-slate-300 leading-relaxed">{u.note}</p>
+                  <p className={`text-[12px] leading-relaxed ${isDark ? 'text-slate-300' : 'text-black'}`}>{u.note}</p>
                 </div>
               </div>
               <div className={`flex-shrink-0 text-sm font-black font-mono px-3 py-1.5 rounded-xl border ${
-                u.delta >= 0 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
-                : 'bg-red-500/15 text-red-400 border-red-500/25'
+                isDark
+                  ? u.delta >= 0 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                  : 'bg-red-500/15 text-red-400 border-red-500/25'
+                  : 'bg-white text-black border-slate-400'
               }`}>
                 {u.delta >= 0 ? '+' : ''}{u.delta.toFixed(2)}%
               </div>
@@ -771,12 +844,59 @@ interface ParseResult {
   errors: string[] 
 }
 
+function parseCSVLine(line: string): string[] {
+  const cells: string[] = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+
+    if (ch === ',' && !inQuotes) {
+      cells.push(current.trim())
+      current = ''
+      continue
+    }
+
+    current += ch
+  }
+
+  cells.push(current.trim())
+  return cells
+}
+
+const toInt = (value: string): number => {
+  const normalized = value.replace(/[^\d-]/g, '')
+  return normalized ? parseInt(normalized, 10) : 0
+}
+
+const toFloat = (value: string): number => {
+  const normalized = value.replace(/[^\d.-]/g, '')
+  return normalized ? parseFloat(normalized) : 0
+}
+
 function parseMainReportCSV(text: string): ParseResult {
   const errors: string[] = []
   const rows: DistrictRow[] = []
   
   try {
-    const lines = text.trim().split('\n').filter(line => line.trim())
+    const normalizedText = text
+      .replace(/^\uFEFF/, '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .trim()
+
+    const lines = normalizedText.split('\n').filter(line => line.trim())
     
     if (lines.length < 2) {
       errors.push('CSV must contain at least a header and one data row')
@@ -784,7 +904,7 @@ function parseMainReportCSV(text: string): ParseResult {
     }
     
     // Parse header
-    const header = lines[0].split(',').map(cell => cell.replace(/"/g, '').trim())
+    const header = parseCSVLine(lines[0]).map(cell => cell.replace(/"/g, '').trim())
     const expectedHeaders = [
       'DISTRICT', '1 Day', '2-5 Days', '6-30 Days', '31-90 Days', 
       '91-180 Days', '>180 Days', 'Never', 'Meter Clock Drift', 
@@ -799,7 +919,7 @@ function parseMainReportCSV(text: string): ParseResult {
     
     // Parse data rows
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(cell => cell.replace(/"/g, '').trim())
+      const values = parseCSVLine(lines[i]).map(cell => cell.replace(/"/g, '').trim())
       
       if (values.length < 11) {
         errors.push(`Row ${i + 1}: Insufficient columns`)
@@ -810,16 +930,16 @@ function parseMainReportCSV(text: string): ParseResult {
         const district: DistrictRow = {
           id: `D${String(i + 1).padStart(2, '0')}`,
           district: values[0],
-          d1: parseInt(values[1].replace(/,/g, '')) || 0,
-          d2_5: parseInt(values[2].replace(/,/g, '')) || 0,
-          d6_30: parseInt(values[3].replace(/,/g, '')) || 0,
-          d31_90: parseInt(values[4].replace(/,/g, '')) || 0,
-          d91_180: parseInt(values[5].replace(/,/g, '')) || 0,
-          d180: parseInt(values[6].replace(/,/g, '')) || 0,
-          never: parseInt(values[7].replace(/,/g, '')) || 0,
-          drift: parseInt(values[8].replace(/,/g, '')) || 0,
-          total: parseInt(values[9].replace(/,/g, '')) || 0,
-          pct: parseFloat(values[10].replace('%', '')) || 0,
+          d1: toInt(values[1]),
+          d2_5: toInt(values[2]),
+          d6_30: toInt(values[3]),
+          d31_90: toInt(values[4]),
+          d91_180: toInt(values[5]),
+          d180: toInt(values[6]),
+          never: toInt(values[7]),
+          drift: toInt(values[8]),
+          total: toInt(values[9]),
+          pct: toFloat(values[10]),
           lastUpdated: new Date().toISOString().slice(0, 10)
         }
         
@@ -866,8 +986,20 @@ const AdminPanel: FC<AdminPanelProps> = ({ onClose }) => {
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 2500) }
 
+  const onUpdateDistricts = useCallback((rows: DistrictRow[]) => {
+    setDistricts(rows)
+  }, [setDistricts])
+
+  const onUpdateMeterTypes = useCallback((rows: MeterTypeRow[]) => {
+    setMeterTypes(rows)
+  }, [setMeterTypes])
+
+  const onUpdateLogs = useCallback((rows: DailyUpdate[]) => {
+    setUpdates(rows)
+  }, [setUpdates])
+
   const handleFileSelect = (file: File) => {
-    if (!file.name.endsWith('.csv')) {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
       flash('❌ Please select a CSV file')
       return
     }
@@ -886,8 +1018,10 @@ const AdminPanel: FC<AdminPanelProps> = ({ onClose }) => {
       if (result.errors.length > 0) {
         flash('❌ ' + result.errors[0])
       } else {
-        setCsvPreview({ rows: result.rows, filename: file.name })
-        flash(`📊 Preview ready: ${result.rows.length} districts`)
+        onUpdateDistricts(result.rows)
+        setCsvPreview(null)
+        setCsvFile(null)
+        flash(`✅ Imported ${result.rows.length} districts from ${file.name}. Main dashboard is updated.`)
       }
       setIsProcessing(false)
     }
@@ -1317,13 +1451,24 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id:'updates',   label:'Updates',     icon:'📋' },
 ]
 
+function ProtectedRoute({ children }: { children: JSX.Element }) {
+  const { isAuthenticated } = useAuth()
+  return isAuthenticated ? children : <Navigate to="/signin" replace />
+}
+
+function PublicRoute({ children }: { children: JSX.Element }) {
+  const { isAuthenticated } = useAuth()
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : children
+}
+
 export default function App(): JSX.Element {
   return (
     <Routes>
-      <Route path="/signin" element={<SignIn />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/dashboard" element={<DashboardApp />} />
+      <Route path="/signin" element={<PublicRoute><SignIn /></PublicRoute>} />
+      <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardApp /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/signin" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
@@ -1331,6 +1476,7 @@ export default function App(): JSX.Element {
 function DashboardApp(): JSX.Element {
   const { districts, meterTypes, updates, setDistricts, setMeterTypes, setUpdates, lastUpdated } = useDashboard()
   const { theme, toggleTheme } = useTheme()
+  const { user, signOut } = useAuth()
   const [tab, setTab] = useState<TabId>('overview')
   const [selectedDistrict, setSelected] = useState<string>('PITAMPURA')
   const [time, setTime] = useState<Date>(new Date())
@@ -1359,60 +1505,90 @@ function DashboardApp(): JSX.Element {
     return `${days} day${days !== 1 ? 's' : ''} ago`
   }
 
+  // Theme color helpers
+  const isDark = theme === 'dark'
+  const themeColors = {
+    bg: isDark ? 'bg-transparent' : 'bg-transparent',
+    text: isDark ? 'text-slate-100' : 'text-slate-900',
+    border: isDark ? 'border-slate-700/70' : 'border-slate-200',
+    headerBg: isDark ? 'bg-slate-950/55' : 'bg-white/75',
+    cardBorder: isDark ? 'border-white/8' : 'border-slate-200',
+    cardBg: isDark ? 'bg-white/3' : 'bg-slate-100/50',
+    tableBorder: isDark ? 'border-white/8' : 'border-slate-200',
+    tableText: isDark ? 'text-white' : 'text-slate-900',
+    secondaryText: isDark ? 'text-slate-300' : 'text-slate-700',
+    mutedText: isDark ? 'text-slate-500' : 'text-slate-600',
+  }
+
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`dashboard-shell min-h-screen ${themeColors.bg} ${themeColors.text}`}>
+      <div className="dashboard-layer">
       {/* ── Header ── */}
-      <div className={`border-b ${theme === 'dark' ? 'border-slate-700 bg-slate-800/80' : 'border-slate-200 bg-white/80'} backdrop-blur-sm sticky top-0 z-50`}>
+      <div className={`border-b panel-glass ${themeColors.border} ${themeColors.headerBg} sticky top-0 z-50`}>
         <div className="max-w-screen-xl mx-auto px-5 py-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <Zap className="w-6 h-6 text-white" />
+            <div className={`h-11 w-24 rounded-xl overflow-hidden border panel-glass ${isDark ? 'border-slate-700 bg-white/95' : 'border-slate-300 bg-white'}`}>
+              <img src={tataPowerLogo} alt="Tata Power DDL" className="h-full w-full object-contain p-1" />
             </div>
             <div>
-              <h1 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: "'Inter', sans-serif" }}>Smart Meter Communication Dashboard</h1>
-              <p className={`text-xs font-normal ${theme === 'dark' ? 'text-slate-500' : 'text-slate-600'}`}>Tata Power DDL · Live Monitoring System · Last updated: {formatTimeAgo(lastUpdated)}</p>
+              <h1 className={`brand-title text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Smart Meter Communication Dashboard</h1>
+              <p className={`text-xs font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-black'}`}>Tata Power DDL · Live Monitoring · Last sync {formatTimeAgo(lastUpdated)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <div className={`hidden sm:block text-right ${theme === 'dark' ? 'text-slate-300' : 'text-black'}`}>
+              <p className="text-xs font-bold">{user?.name ?? 'User'}</p>
+              <p className="text-[10px] opacity-80 font-semibold">{user?.employeeId ?? 'Employee'}</p>
+            </div>
             <button 
               onClick={toggleTheme}
-              className={`p-2 rounded-lg transition-colors ${
-                theme === 'dark' 
-                  ? 'text-slate-400 hover:text-white hover:bg-white/5' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+              className={`p-2 rounded-xl transition-colors border ${
+                isDark
+                  ? 'text-slate-300 border-slate-600 hover:text-white hover:bg-slate-800/60' 
+                  : 'text-black border-slate-300 hover:text-black hover:bg-slate-200'
               }`}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <button className={`p-2 rounded-lg transition-colors ${
-              theme === 'dark' 
-                ? 'text-slate-400 hover:text-white hover:bg-white/5' 
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+            <button className={`p-2 rounded-xl transition-colors border ${
+              isDark
+                ? 'text-slate-300 border-slate-600 hover:text-white hover:bg-slate-800/60' 
+                : 'text-black border-slate-300 hover:text-black hover:bg-slate-200'
               }`}>
               <RotateCw className="w-4 h-4" />
             </button>
-            <button onClick={() => setShowAdmin(!showAdmin)} className={`p-2 rounded-lg transition-colors ${
-              theme === 'dark' 
-                ? 'text-slate-400 hover:text-white hover:bg-white/5' 
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+            <button onClick={() => setShowAdmin(!showAdmin)} className={`p-2 rounded-xl transition-colors border ${
+              isDark
+                ? 'text-slate-300 border-slate-600 hover:text-white hover:bg-slate-800/60' 
+                : 'text-black border-slate-300 hover:text-black hover:bg-slate-200'
               }`}>
               <Settings className="w-4 h-4" />
+            </button>
+            <button
+              onClick={signOut}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors border ${
+                isDark
+                  ? 'text-slate-200 border-slate-600 hover:bg-slate-800/70 hover:text-white'
+                  : 'text-black border-slate-300 hover:bg-slate-200 hover:text-black'
+              }`}
+            >
+              Sign out
             </button>
           </div>
         </div>
         <div className="max-w-screen-xl mx-auto px-5 pb-4">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+          <div className={`flex gap-2 overflow-x-auto scrollbar-hide rounded-2xl p-2 ${isDark ? 'bg-slate-900/65 border border-slate-700/60' : 'bg-white/75 border border-slate-200'}`}>
             {TABS.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${
                   tab === t.id
-                    ? theme === 'dark' 
-                      ? 'bg-slate-700 text-white border border-slate-600'
-                      : 'bg-slate-200 text-slate-900 border border-slate-300'
-                    : theme === 'dark'
-                      ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                      : 'text-slate-600 hover:text-slate-700 hover:bg-slate-100'
+                    ? isDark
+                      ? 'bg-gradient-to-r from-sky-500/30 to-amber-500/25 text-white border border-sky-500/40'
+                      : 'bg-gradient-to-r from-sky-100 to-amber-100 text-black border border-sky-300'
+                    : isDark
+                      ? 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                      : 'text-black hover:text-black hover:bg-slate-100'
                 }`}>
                 {t.icon} {t.label}
               </button>
@@ -1422,26 +1598,26 @@ function DashboardApp(): JSX.Element {
       </div>
 
       {/* ── Content ── */}
-      <main className="max-w-screen-xl mx-auto px-5 py-6">
-        {tab === 'overview'  && <OverviewView  districts={districts} meterTypes={meterTypes} />}
-        {tab === 'district'  && <DistrictView  districts={districts} selected={selectedDistrict} setSelected={setSelected} />}
-        {tab === 'metertype' && <MeterTypeView meterTypes={meterTypes} />}
-        {tab === 'ageing'    && <AgeingView    districts={districts} />}
-        {tab === 'updates'   && <UpdatesView   updates={updates} />}
+      <main className="max-w-screen-xl mx-auto px-5 py-7 animate-rise">
+        {tab === 'overview'  && <OverviewView  districts={districts} meterTypes={meterTypes} isDark={isDark} />}
+        {tab === 'district'  && <DistrictView  districts={districts} selected={selectedDistrict} setSelected={setSelected} isDark={isDark} />}
+        {tab === 'metertype' && <MeterTypeView meterTypes={meterTypes} isDark={isDark} />}
+        {tab === 'ageing'    && <AgeingView    districts={districts} isDark={isDark} />}
+        {tab === 'updates'   && <UpdatesView   updates={updates} isDark={isDark} />}
       </main>
 
       {/* ── Footer ── */}
-      <footer className={`border-t mt-8 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
+      <footer className={`border-t mt-8 ${themeColors.border} ${isDark ? 'bg-slate-950/30' : 'bg-white/40'} panel-glass`}>
         <div className="max-w-screen-xl mx-auto px-5 py-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} style={{ fontFamily: "'Inter', sans-serif" }}>Smart Meter Communication Dashboard · Tata Power DDL</p>
-            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-slate-600' : 'text-slate-500'}`}>
+            <p className={`brand-title text-sm font-bold ${isDark ? 'text-slate-300' : 'text-black'}`}>Smart Meter Communication Dashboard · Tata Power DDL</p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-black'}`}>
               Data: Meters Communication Last Status Detail Report · Dec 26, 2025 · 6,46,302 meters
             </p>
           </div>
           <div className="text-right">
-            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} style={{ fontFamily: "'Inter', sans-serif" }}>Aman Yadav</p>
-            <p className={`text-xs ${theme === 'dark' ? 'text-slate-600' : 'text-slate-500'}`}>Data & Frontend Dev Intern · Tata Power DDL · Dec 2025 – Jan 2026</p>
+            <p className={`brand-title text-sm font-bold ${isDark ? 'text-slate-300' : 'text-black'}`}>Aman Yadav</p>
+            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-black'}`}>Data & Frontend Dev Intern · Tata Power DDL · Dec 2025 – Jan 2026</p>
           </div>
         </div>
       </footer>
@@ -1452,6 +1628,7 @@ function DashboardApp(): JSX.Element {
           onClose={() => setShowAdmin(false)}
         />
       )}
+      </div>
     </div>
   )
 }

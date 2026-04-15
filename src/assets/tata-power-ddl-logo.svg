@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160" viewBox="0 0 320 160" role="img" aria-labelledby="title desc">
+  <title id="title">Tata Power DDL logo</title>
+  <desc id="desc">Blue oval with white lightning and Tata Power DDL text</desc>
+  <rect width="320" height="160" fill="none"/>
+  <ellipse cx="160" cy="58" rx="82" ry="42" fill="#2f5c9d"/>
+  <path d="M198 20 L164 62 L154 30 L120 90 L154 62 L162 84 Z" fill="#ffffff"/>
+  <text x="160" y="128" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800" fill="#2f5c9d" letter-spacing="1.1">TATA POWER-DDL</text>
+</svg>

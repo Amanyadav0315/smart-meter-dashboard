@@ -1,9 +1,21 @@
 import { useState, FormEvent } from 'react'
 import { Eye, EyeOff, Mail, Lock, User, Building, Zap, Shield, ChevronRight, UserCheck } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+
+interface FormData {
+  name: string
+  email: string
+  employeeId: string
+  department: string
+  password: string
+  confirmPassword: string
+}
+
+type FormErrors = Partial<Record<keyof FormData, string>>
 
 export default function SignUp() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     employeeId: '',
@@ -14,8 +26,10 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [errors, setErrors] = useState<any>({})
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [authError, setAuthError] = useState('')
   const navigate = useNavigate()
+  const { signUp } = useAuth()
 
   const departments = [
     'Engineering',
@@ -28,7 +42,7 @@ export default function SignUp() {
   ]
 
   const validateForm = () => {
-    const newErrors: any = {}
+    const newErrors: FormErrors = {}
     
     if (!formData.name) {
       newErrors.name = 'Full name is required'
@@ -70,10 +84,11 @@ export default function SignUp() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData((prev: typeof formData) => ({ ...prev, [name]: value }))
+    setFormData((prev: FormData) => ({ ...prev, [name]: value }))
+    setAuthError('')
     // Clear error for this field
-    if (errors[name]) {
-      setErrors((prev: any) => ({ ...prev, [name]: '' }))
+    if (errors[name as keyof FormData]) {
+      setErrors((prev: FormErrors) => ({ ...prev, [name]: '' }))
     }
   }
 
@@ -83,13 +98,24 @@ export default function SignUp() {
     if (!validateForm()) return
     
     setIsLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // For demo, navigate to sign in on successful registration
-      navigate('/signin')
-    }, 2000)
+    setAuthError('')
+
+    const result = await signUp({
+      name: formData.name,
+      email: formData.email,
+      employeeId: formData.employeeId,
+      department: formData.department,
+      password: formData.password,
+    })
+
+    setIsLoading(false)
+
+    if (!result.ok) {
+      setAuthError(result.error ?? 'Unable to create account')
+      return
+    }
+
+    navigate('/signin', { replace: true })
   }
 
   return (
@@ -272,6 +298,10 @@ export default function SignUp() {
                 </>
               )}
             </button>
+
+            {authError && (
+              <p className="text-sm text-red-400 text-center">{authError}</p>
+            )}
           </form>
 
           {/* Sign In Link */}
